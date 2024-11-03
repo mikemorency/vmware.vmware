@@ -179,6 +179,7 @@ from ansible_collections.vmware.vmware.plugins.module_utils._vmware_facts import
     vmware_obj_to_json,
     extract_object_attributes_to_dict
 )
+from ansible_collections.vmware.vmware.plugins.module_utils.vmware_cache import cache
 
 
 class VmwareGuestInfo(VmwareRestClient):
@@ -253,7 +254,6 @@ class VmwareGuestInfo(VmwareRestClient):
             vm = self.pyvmomi.get_vm_using_params(fail_on_missing=False)
         else:
             vm = self.pyvmomi.get_all_vms()
-
         return vm if vm else []
 
     def _get_tags(self, vm):
@@ -272,40 +272,50 @@ class VmwareGuestInfo(VmwareRestClient):
 
 
 def main():
-    argument_spec = VmwareRestClient.vmware_client_argument_spec()
-    argument_spec.update(
-        dict(
-            name=dict(type='str', aliases=['guest_name']),
-            name_match=dict(type='str', choices=['first', 'last'], default=None),
-            uuid=dict(type='str'),
-            use_instance_uuid=dict(type='bool', default=True),
-            moid=dict(type='str'),
+    import cProfile
+    import pstats
+    with cProfile.Profile() as pr:
+        argument_spec = VmwareRestClient.vmware_client_argument_spec()
+        argument_spec.update(
+            dict(
+                name=dict(type='str', aliases=['guest_name'], default="tshefi-vm1"),
+                name_match=dict(type='str', choices=['first', 'last'], default=None),
+                uuid=dict(type='str'),
+                use_instance_uuid=dict(type='bool', default=True),
+                moid=dict(type='str'),
 
-            gather_tags=dict(type='bool', default=False),
+                gather_tags=dict(type='bool', default=False),
 
-            schema=dict(type='str', choices=['summary', 'vsphere'], default='summary'),
-            properties=dict(type='list', elements='str'),
+                schema=dict(type='str', choices=['summary', 'vsphere'], default='summary'),
+                properties=dict(type='list', elements='str'),
 
-            guest_username=dict(type='str', required=False),
-            guest_password=dict(type='str', no_log=True, required=False),
+                guest_username=dict(type='str', required=False),
+                guest_password=dict(type='str', no_log=True, required=False),
+            )
         )
-    )
-    module = AnsibleModule(
-        argument_spec=argument_spec,
-        supports_check_mode=True,
-        required_together=[
-            ('guest_username', 'guest_password'),
-        ],
-        mutually_exclusive=[['name', 'uuid', 'moid']]
-    )
+        module = AnsibleModule(
+            argument_spec=argument_spec,
+            supports_check_mode=True,
+            required_together=[
+                ('guest_username', 'guest_password'),
+            ],
+            mutually_exclusive=[['name', 'uuid', 'moid']]
+        )
 
-    if module.params['schema'] != 'vsphere' and module.params.get('properties'):
-        module.fail_json(msg="The option 'properties' is only valid when the schema is 'vsphere'")
+        if module.params['schema'] != 'vsphere' and module.params.get('properties'):
+            module.fail_json(msg="The option 'properties' is only valid when the schema is 'vsphere'")
 
-    vmware_appliance_mgr = VmwareGuestInfo(module)
-    guests = vmware_appliance_mgr.gather_info_for_guests()
+        vmware_appliance_mgr = VmwareGuestInfo(module)
+        guests = vmware_appliance_mgr.gather_info_for_guests()
+
+        stats = pstats.Stats(pr)
+
+    stats.sort_stats(pstats.SortKey.TIME)
+    stats.dump_stats("/home/mimorenc/Documents/no_thin_profile.prof")
+
     module.exit_json(changed=False, guests=guests)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
+

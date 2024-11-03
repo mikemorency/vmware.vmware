@@ -1,0 +1,34 @@
+---
+- hosts: localhost
+  gather_facts: false
+  environment:
+    ENABLE_TURBO_MODE: 0
+    ANSIBLE_TURBO_LOOKUP_TTL: 90
+  tasks:
+    - name: '1'
+      vmware.vmware.guest_info:
+        name: tshefi-vm1
+        validate_certs: false
+    - name: '2'
+      vmware.vmware.guest_info:
+        name: tshefi-vm1
+        validate_certs: false
+    - name: '3'
+      vmware.vmware.guest_info:
+        name: tshefi-vm1
+        validate_certs: false
+    # - name: 5
+    #   vmware.vmware.guest_info:
+    #     name: tshefi-vm1
+    #     validate_certs: false
+    #   with_sequence: 1-5
+    # - name: 15
+    #   vmware.vmware.guest_info:
+    #     name: tshefi-vm1
+    #     validate_certs: false
+    #   with_sequence: 1-15
+    # - name: 25
+    #   vmware.vmware.guest_info:
+    #     name: tshefi-vm1
+    #     validate_certs: false
+    #   with_sequence: 1-25

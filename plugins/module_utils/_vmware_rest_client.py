@@ -51,6 +51,8 @@ except ImportError:
 
 from ansible.module_utils.basic import env_fallback, missing_required_lib
 from ansible.module_utils._text import to_native
+from ansible_collections.vmware.vmware.plugins.module_utils.vmware_cache import cache
+
 
 import functools
 
@@ -115,7 +117,7 @@ class VmwareRestClient(object):
                           choices=['https', 'http']),
             validate_certs=dict(type='bool',
                                 fallback=(env_fallback, ['VMWARE_VALIDATE_CERTS']),
-                                default=True),
+                                default=False),
             proxy_host=dict(type='str',
                             required=False,
                             default=None,
@@ -127,12 +129,12 @@ class VmwareRestClient(object):
         )
 
     def __eq__(self, value):
-        return True
+        return isinstance(value, VmwareRestClient)
 
     def __hash__(self):
-        return hash(self.params['hostname'])
+        return hash(f'rest-{self.params["hostname"]}')
 
-    @functools.lru_cache
+    @cache
     def connect_to_vsphere_client(self):
         """
         Connect to vSphere API Client with Username and Password

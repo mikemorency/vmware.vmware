@@ -35,6 +35,9 @@ except ImportError:
 from ansible.module_utils.basic import env_fallback, missing_required_lib
 import functools
 
+from ansible_collections.vmware.vmware.plugins.module_utils.vmware_cache import cache
+
+
 
 class ApiAccessError(Exception):
     def __init__(self, *args, **kwargs):
@@ -67,7 +70,7 @@ def vmware_argument_spec():
                   fallback=(env_fallback, ['VMWARE_PORT'])),
         validate_certs=dict(type='bool',
                             required=False,
-                            default=True,
+                            default=False,
                             fallback=(env_fallback, ['VMWARE_VALIDATE_CERTS'])
                             ),
         proxy_host=dict(type='str',
@@ -81,7 +84,6 @@ def vmware_argument_spec():
     )
 
 
-@functools.lru_cache
 def connect_to_api(module, disconnect_atexit=True, return_si=False, hostname=None, username=None, password=None,
                    port=None, validate_certs=None,
                    httpProxyHost=None, httpProxyPort=None):
@@ -211,12 +213,11 @@ class PyVmomi(object):
             self.custom_field_mgr = self.content.customFieldsManager.field
 
     def __eq__(self, value):
-        return True
+        return isinstance(value, PyVmomi)
 
     def __hash__(self):
-        return hash(self.params['hostname'])
+        return hash(f'pyvmomi-{self.params["hostname"]}')
 
-    @functools.lru_cache
     def _connect_to_vcenter(self):
         return  connect_to_api(self.module, return_si=True)
 
@@ -238,6 +239,7 @@ class PyVmomi(object):
         elif api_type == 'HostAgent':
             return False
 
+    @cache
     def get_objs_by_name_or_moid(self, vimtype, name, return_all=False, search_root_folder=None):
         """
         Get any vsphere objects associated with a given text name or MOID and vim type.
