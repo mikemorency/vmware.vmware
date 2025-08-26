@@ -134,9 +134,9 @@ class TestConfigurator:
 
         # Mock handlers with changes
         handler_with_changes = Mock()
-        handler_with_changes.change_set.are_changes_required = Mock(return_value=True)
+        handler_with_changes.change_set.are_changes_required() = True
         handler_without_changes = Mock()
-        handler_without_changes.change_set.are_changes_required = Mock(return_value=False)
+        handler_without_changes.change_set.are_changes_required() = False
         configurator.all_handlers = [handler_with_changes, handler_without_changes]
 
         configurator.apply_staged_changes_to_config_spec(config_spec)
